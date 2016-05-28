@@ -3,7 +3,7 @@ Tests for Schema.
 '''
 
 import unittest
-from schema import match, MatchError
+from destructure import match, MatchError, Binding
 
 
 
@@ -216,8 +216,13 @@ class BindingTestCase(unittest.TestCase):
         o = Binding()
         schema = [1, 2, o.x]
         data = [1, 2, 3]
-        self.assertEqual(match(schema, data))
+        self.assertEqual(data, match(schema, data))
         self.assertEqual(o.x, 3)
+
+
+
+class SwitchTestCase(unittest.TestCase):
+    pass
 
 
 
