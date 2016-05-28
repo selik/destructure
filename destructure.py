@@ -165,13 +165,27 @@ def match(schema, data):
     specify a variable number of elements in a sequence or mapping. or
     may be used to specify that data may be of any type.
 
-        schema = \
-        {
-            'string': str,
-            'any': ...
-            'sequence': [1, 2, 3, ...]
-            'mapping': {'a': int, 'b': float, ...: ...}
-        }
+        >>> o = Binding()
+        >>> schema = \
+        ... {
+        ...     'string': str,
+        ...     'any': ...,
+        ...     'binding': o.name,
+        ...     'sequence': [1, 2, ...],
+        ...     'mapping': {'a': int, ...: ...}
+        ... }
+        >>> data = \
+        ... {
+        ...     'string': 'a',
+        ...     'any': 5j,
+        ...     'binding': 42,
+        ...     'sequence': [1, 2, 3, 4],
+        ...     'mapping': {'a': 1, 'b': 2, 'c': 3}
+        ... }
+        >>> data == match(schema, data)
+        True
+        >>> o.name
+        42
     '''
     if isinstance(schema, Unbound):
         obj = schema.namespace
@@ -191,48 +205,5 @@ def match(schema, data):
         return _match_sequence(schema, data)
 
     return _match_equal(schema, data)
-
-
-
-# class Case:
-
-#     def __init__(self, schema, function):
-#         self.schema = schema
-#         self.function = function
-
-
-# def case(schema):
-
-#     def
-
-
-
-# class SwitchMeta(type):
-#     pass
-
-
-
-# class Switch(metaclass=SwitchMeta):
-
-#     cases = []
-
-#     def __new__(cls, data):
-#         for case in cases:
-#             try:
-#                 match(case.schema, data)
-#             except MatchError:
-#                 return case.function(data)
-
-
-
-# class switch(Switch):
-
-#     @case(1)
-#     def one(self, data):
-#         print(1)
-
-#     @case(2)
-#     def two(self, data):
-#         print(2)
 
 
