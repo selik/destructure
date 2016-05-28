@@ -4,7 +4,8 @@
 
 Easy declarative schema validation with optional name-binding.
 
-```
+.. code:: python
+
     from destructure import Binding, match
 
     >>> o = Binding()
@@ -26,6 +27,5 @@ Easy declarative schema validation with optional name-binding.
     True
     >>> o.name
     42
-```
 
 
