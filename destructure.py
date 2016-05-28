@@ -11,6 +11,7 @@ from types import SimpleNamespace
 
 __all__ = ['match',
            'Binding',
+           'Switch',
            ]
 
 
