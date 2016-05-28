@@ -226,6 +226,14 @@ class BindingTestCase(unittest.TestCase):
         with self.assertRaises(BindError):
             o.x = 2
 
+    def test_rebind_after_clear(self):
+        o = Binding()
+        o.x = 1
+        self.assertEqual(1, o.x)
+        del o.x
+        o.x = 2
+        self.assertEqual(2, o.x)
+
     def test_unwind(self):
         o = Binding()
         schema = [o.x, o.y, 42]
