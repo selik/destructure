@@ -166,16 +166,14 @@ def match(schema, data):
     may be used to specify that data may be of any type.
 
         >>> o = Binding()
-        >>> schema = \
-        ... {
+        >>> schema = {
         ...     'string': str,
         ...     'any': ...,
         ...     'binding': o.name,
         ...     'sequence': [1, 2, ...],
         ...     'mapping': {'a': int, ...: ...}
         ... }
-        >>> data = \
-        ... {
+        >>> data = {
         ...     'string': 'a',
         ...     'any': 5j,
         ...     'binding': 42,
