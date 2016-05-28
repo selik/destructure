@@ -12,12 +12,20 @@ from types import SimpleNamespace
 __all__ = ['match',
            'Binding',
            'Switch',
+           'Unbound',
+           'MatchError',
+           'BindError',
            ]
 
 
 
 class MatchError(ValueError):
     'Data did not match the specified schema'
+
+
+
+class BindError(ValueError):
+    'Could not bind value to name'
 
 
 
@@ -45,6 +53,12 @@ class Binding(SimpleNamespace):
 
     def __getattr__(self, name):
         return Unbound(self, name)
+
+    def __setattr__(self, name, value):
+        if not isinstance(getattr(self, name), Unbound):
+            fmt = 'name {name!r} has already been bound to {value!r}'
+            raise BindError(fmt.format(name=name, value=value))
+        super().__setattr__(name, value)
 
 
 
@@ -278,5 +292,10 @@ def match(schema, data):
 
     with Match() as session:
         return session._match(schema, data)
+
+
+
+if __name__ == '__main__':
+    pass
 
 

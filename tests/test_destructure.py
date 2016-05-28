@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 '''
 Tests for Schema.
 '''
 
 import unittest
-from destructure import match, MatchError, Binding, Unbound
+from destructure import *
 
 
 
@@ -219,6 +220,12 @@ class BindingTestCase(unittest.TestCase):
         self.assertEqual(data, match(schema, data))
         self.assertEqual(o.x, 3)
 
+    def test_rebind(self):
+        o = Binding()
+        o.x = 1
+        with self.assertRaises(BindError):
+            o.x = 2
+
     def test_unwind(self):
         o = Binding()
         schema = [o.x, o.y, 42]
@@ -231,7 +238,9 @@ class BindingTestCase(unittest.TestCase):
 
 
 class SwitchTestCase(unittest.TestCase):
-    pass
+
+    def test_guards(self):
+        pass
 
 
 
