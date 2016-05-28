@@ -9,7 +9,9 @@ from types import SimpleNamespace
 
 
 
-__all__ = ['match']
+__all__ = ['match',
+           'Binding',
+           ]
 
 
 
@@ -42,6 +44,49 @@ class Binding(SimpleNamespace):
 
     def __getattr__(self, name):
         return Unbound(self, name)
+
+
+
+class Switch:
+    '''
+    Try to match data to one or several schemas. The specified Binding
+    will be cleared/unbound if a match fails.
+
+        >>> o = Binding()
+        >>> schema1 = [1, o.x]
+        >>> schema2 = [2, o.x]
+        >>> schema3 = [3, o.x]
+        >>> s = Switch(data=[2, 2], binding=o)
+        >>> if s.case(schema1):
+        ...     print(o.x)
+        ... elif s.case(schema2):
+        ...     print(o.x)
+        ... elif s.case(schema3):
+        ...     print(o.x)
+        ... else:
+        ...     print('otherwise')
+        2
+    '''
+
+    def __init__(self, *, data=None, binding=None):
+        if binding is None:
+            self.binding = Binding()
+        else:
+            self.binding = binding
+        self.data = data
+
+
+    def case(self, schema):
+        '''
+        Test a schema against the Switch's data.
+        Clears the switch's Binding if the match fails.
+        '''
+        try:
+            match(schema, self.data)
+        except MatchError:
+            self.binding.__dict__.clear()
+            return False
+        return True
 
 
 
