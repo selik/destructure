@@ -3,7 +3,7 @@ Tests for Schema.
 '''
 
 import unittest
-from destructure import match, MatchError, Binding
+from destructure import match, MatchError, Binding, Unbound
 
 
 
@@ -218,6 +218,15 @@ class BindingTestCase(unittest.TestCase):
         data = [1, 2, 3]
         self.assertEqual(data, match(schema, data))
         self.assertEqual(o.x, 3)
+
+    def test_unwind(self):
+        o = Binding()
+        schema = [o.x, o.y, 42]
+        data = [1, 2]
+        with self.assertRaises(MatchError):
+            match(schema, data)
+        self.assertIsInstance(o.x, Unbound)
+        self.assertIsInstance(o.y, Unbound)
 
 
 

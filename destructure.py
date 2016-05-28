@@ -50,19 +50,15 @@ class Binding(SimpleNamespace):
 
 class Switch:
     '''
-    Try to match data to one or several schemas. The specified Binding
-    will be cleared/unbound if a match fails.
+    Try to match data to one or several schemas.
 
         >>> o = Binding()
         >>> schema1 = [1, o.x]
         >>> schema2 = [2, o.x]
-        >>> schema3 = [3, o.x]
         >>> s = Switch(data=[2, 2], binding=o)
         >>> if s.case(schema1):
         ...     print(o.x)
         ... elif s.case(schema2):
-        ...     print(o.x)
-        ... elif s.case(schema3):
         ...     print(o.x)
         ... else:
         ...     print('otherwise')
@@ -80,125 +76,171 @@ class Switch:
     def case(self, schema):
         '''
         Test a schema against the Switch's data.
-        Clears the switch's Binding if the match fails.
         '''
         try:
             match(schema, self.data)
         except MatchError:
-            self.binding.__dict__.clear()
             return False
         return True
 
 
 
-def _match_type(schema, data):
+class Match:
     '''
-    Verify that data is of the correct type.
+    Validator. Makes name-bindings during schema validation.
+    Deletes the name-bindings if the match fails.
     '''
-    if not isinstance(data, schema):
-        fmt = '{data!r} does not match type {schema.__name__!r}'
-        raise MatchError(fmt.format(data=data, schema=schema))
-    return data
+
+    def __init__(self):
+        self.bindings = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, etype, e, traceback):
+        if etype is MatchError:
+            for bind in self.bindings:
+                delattr(bind.namespace, bind.name)
 
 
 
-def _match_mapping_ellipsis(schema, data):
-    '''
-    If ``schema[...] is ...`` then match all extra items.
-    If ``schema[...] is not ...`` then match exactly 1 extra item.
-    '''
-    schema = schema.copy()
-    value = schema.pop(...)
-
-    extra = {k: v for k, v in data.items() if k not in schema}
-
-    if value is ... or len(extra) == 1:
-        schema.update(extra)
-        return _match_mapping(schema, data)
-
-    if not extra:
-        fmt = '{{...: {value!r}}} specified, but no extra items found'
-        raise MatchError(fmt.format(value=value))
-    fmt = '\{...: {value!r}\} cannot match {n} extra items'
-    raise MatchError(fmt.format(value=value, n=len(extra)))
+    def _match_type(self, schema, data):
+        '''
+        Verify that data is of the correct type.
+        '''
+        if not isinstance(data, schema):
+            fmt = '{data!r} does not match type {schema.__name__!r}'
+            raise MatchError(fmt.format(data=data, schema=schema))
+        return data
 
 
 
-def _match_mapping(schema, data):
-    '''
-    Recursively verify that data matches keys and values in the mapping.
-    An ellipsis key-value pair specifies a variable number of items.
-    '''
-    if not isinstance(data, Mapping):
-        fmt = 'expected a mapping, got {data.__class__.__name__!r}'
-        raise MatchError(fmt.format(data=data))
+    def _match_mapping_ellipsis(self, schema, data):
+        '''
+        If ``schema[...] is ...`` then match all extra items.
+        If ``schema[...] is not ...`` then match exactly 1 extra item.
+        '''
+        schema = schema.copy()
+        value = schema.pop(...)
 
-    missing = schema.keys() - data.keys()
-    excess = data.keys() - schema.keys()
+        extra = {k: v for k, v in data.items() if k not in schema}
 
-    # Bug: data with Ellipsis as a key
-    #      may prevent schema from using Ellipsis as desired.
-    if missing == {...}:
-        return _match_mapping_ellipsis(schema, data)
+        if value is ... or len(extra) == 1:
+            schema.update(extra)
+            return self._match_mapping(schema, data)
 
-    if missing:
-        fmt = 'missing {n} keys {keys!r}'
-        raise MatchError(fmt.format(n=len(missing), keys=missing))
-
-    if excess:
-        fmt = 'got {n} unexpected keys {keys!r}'
-        raise MatchError(fmt.format(n=len(excess), keys=excess))
-
-    return {key: match(value, data[key]) for key, value in schema.items()}
+        if not extra:
+            fmt = '{{...: {value!r}}} specified, but no extra items found'
+            raise MatchError(fmt.format(value=value))
+        fmt = '\{...: {value!r}\} cannot match {n} extra items'
+        raise MatchError(fmt.format(value=value, n=len(extra)))
 
 
 
-def _match_sequence(schema, data):
-    '''
-    Recursively verify that data matches the sequence.
-    An ellipsis specifies a variable number of items.
-    '''
-    if not isinstance(data, Sequence):
-        fmt = 'expected a sequence, got {data.__class__.__name__!r}'
-        raise MatchError(fmt.format(data=data))
+    def _match_mapping(self, schema, data):
+        '''
+        Recursively verify that data matches keys and values in the mapping.
+        An ellipsis key-value pair specifies a variable number of items.
+        '''
+        if not isinstance(data, Mapping):
+            fmt = 'expected a mapping, got {data.__class__.__name__!r}'
+            raise MatchError(fmt.format(data=data))
 
-    if data and not schema:
-        fmt = 'expected empty {cls!r}, got {data!r}'
-        raise MatchError(fmt.format(cls=type(schema).__name__, data=data))
+        missing = schema.keys() - data.keys()
+        excess = data.keys() - schema.keys()
 
-    if ... not in schema:
-        n = len(schema)
-        m = len(data)
-        if n > m:
-            raise MatchError('got unexpected values {!r}'.format(data[n:]))
-        if m < n:
-            raise MatchError('missing values {!r}'.format(schema[m:]))
-        cls = type(schema)
-        return cls(map(match, schema, data))
+        # Bug: data with Ellipsis as a key
+        #      may prevent schema from using Ellipsis as desired.
+        if missing == {...}:
+            return self._match_mapping_ellipsis(schema, data)
 
-    if ... is schema[-1]:
-        split = len(schema) - 1
-        return _match_sequence(schema[:-1], data[:split]) + data[split:]
+        if missing:
+            fmt = 'missing {n} keys {keys!r}'
+            raise MatchError(fmt.format(n=len(missing), keys=missing))
 
-    if ... is schema[0]:
-        split = 1 - len(schema)
-        return data[:split] + _match_sequence(schema[1:], data[split:])
+        if excess:
+            fmt = 'got {n} unexpected keys {keys!r}'
+            raise MatchError(fmt.format(n=len(excess), keys=excess))
 
-    split = schema.index(...)
-    return _match_sequence(schema[:split], data[:split]) \
-           + _match_sequence(schema[split:], data[split:])
+        return {k: self._match(nest, data[k]) for k, nest in schema.items()}
 
 
 
-def _match_equal(schema, data):
-    '''
-    Verify that the data is exactly the schema.
-    Intended to match non-collection literals.
-    '''
-    if schema != data:
-        fmt = '{data!r} did not match literal {schema!r}'
-        raise MatchError(fmt.format(data=data, schema=schema))
-    return data
+    def _match_sequence(self, schema, data):
+        '''
+        Recursively verify that data matches the sequence.
+        An ellipsis specifies a variable number of items.
+        '''
+        if not isinstance(data, Sequence):
+            fmt = 'expected a sequence, got {data.__class__.__name__!r}'
+            raise MatchError(fmt.format(data=data))
+
+        if data and not schema:
+            fmt = 'expected empty {cls!r}, got {data!r}'
+            raise MatchError(fmt.format(cls=type(schema).__name__, data=data))
+
+        if ... not in schema:
+            n = len(schema)
+            m = len(data)
+            if n > m:
+                fmt = 'got unexpected values {!r}'
+                raise MatchError(fmt.format(data[n:]))
+            if m < n:
+                fmt = 'missing values {!r}'
+                raise MatchError(fmt.format(schema[m:]))
+            cls = type(schema)
+            return cls(map(self._match, schema, data))
+
+        if ... is schema[-1]:
+            split = len(schema) - 1
+            matched = self._match_sequence(schema[:-1], data[:split])
+            return matched + data[split:]
+
+        if ... is schema[0]:
+            split = 1 - len(schema)
+            matched = self._match_sequence(schema[1:], data[split:])
+            return data[:split] + matched
+
+        split = schema.index(...)
+        return self._match_sequence(schema[:split], data[:split]) \
+               + self._match_sequence(schema[split:], data[split:])
+
+
+
+    def _match_equal(self, schema, data):
+        '''
+        Verify that the data is exactly the schema.
+        Intended to match non-collection literals.
+        '''
+        if schema != data:
+            fmt = '{data!r} did not match literal {schema!r}'
+            raise MatchError(fmt.format(data=data, schema=schema))
+        return data
+
+
+
+    def _match(self, schema, data):
+        '''
+        Recursive schema validation and name-binding.
+        '''
+        if isinstance(schema, Unbound):
+            setattr(schema.namespace, schema.name, data)
+            self.bindings.append(schema)
+            return data
+
+        if schema is Ellipsis:
+            return data
+
+        if isinstance(schema, type):
+            return self._match_type(schema, data)
+
+        if isinstance(schema, Mapping):
+            return self._match_mapping(schema, data)
+
+        if isinstance(schema, Sequence) and not isinstance(schema, (str, bytes)):
+            return self._match_sequence(schema, data)
+
+        return self._match_equal(schema, data)
 
 
 
@@ -230,24 +272,11 @@ def match(schema, data):
         True
         >>> o.name
         42
+
+    A failed match will unwind any bindings made during the attempt.
     '''
-    if isinstance(schema, Unbound):
-        obj = schema.namespace
-        setattr(obj, schema.name, data)
-        return data
 
-    if schema is Ellipsis:
-        return data
-
-    if isinstance(schema, type):
-        return _match_type(schema, data)
-
-    if isinstance(schema, Mapping):
-        return _match_mapping(schema, data)
-
-    if isinstance(schema, Sequence) and not isinstance(schema, (str, bytes)):
-        return _match_sequence(schema, data)
-
-    return _match_equal(schema, data)
+    with Match() as session:
+        return session._match(schema, data)
 
 
