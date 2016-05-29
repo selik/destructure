@@ -24,10 +24,10 @@ __all__ = ['match',
 class MatchError(ValueError):
     'Data did not match the specified schema'
 
-class BindError(ValueError):
+class BindError(Exception):
     'Could not bind value to name'
 
-class SchemaError(ValueError):
+class SchemaError(Exception):
     'Malformed schema'
 
 
