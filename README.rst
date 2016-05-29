@@ -38,7 +38,8 @@ Pick between several schemas with a handy ``Switch.case``.
     >>> o = Binding()
     >>> schema1 = [1, o.x]
     >>> schema2 = [2, o.x]
-    >>> s = Switch(data=[2, 2], binding=o)
+    >>>
+    >>> s = Switch([2, 2])
     >>> if s.case(schema1):
     ...     print(o.x)
     ... elif s.case(schema2):
