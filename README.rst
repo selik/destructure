@@ -31,7 +31,7 @@ Easy declarative schema validation with optional name-binding.
 
 Pick between several schemas with a handy ``Switch.case``.
 
-..code:: python
+.. code:: python
 
     >>> from destructure import Binding, Switch
     >>>
