@@ -17,8 +17,9 @@ from urllib.parse import urlencode
 
 url = 'http://data.fcc.gov/api/block/find?'
 params = {'format': 'json', 'showall': 'true',
-          # 'latitude': 28.35975, 'longitude': -81.421988}
-          'latitude': 28.359, 'longitude': -81.421}
+          'latitude': 28.35975, 'longitude': -81.421988}
+          # 'latitude': 28.359, 'longitude': -81.421}
+          # 'latitude': 0, 'longitude': 100}
 
 
 
@@ -74,21 +75,13 @@ with urlopen(url + urlencode(params)) as response:
 data = json.loads(text)
 
 s = Switch(data)
-
 if s.case(schema_one):
     codes = [results.fips]
-
 elif s.case(schema_intersection):
     codes = [block['FIPS'] for block in results.intersection]
-
 else:
-    raise MatchError('Could not match any schemas')
-
-
-
-if not codes or None in codes:
-    fmt = 'No FIPS found for {latitude}, {longitude}'
-    raise ValueError(fmt.format(**params))
+    fmt = 'Could not match any schemas to {data!r}'
+    raise MatchError(fmt.format(data=data))
 
 for fips in codes:
     print(fips)
