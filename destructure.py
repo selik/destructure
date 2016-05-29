@@ -117,9 +117,10 @@ class Match:
     '''
     Validator. Makes name-bindings during schema validation.
     Use as context manager to delete the name-bindings if match fails.
+    Also manages releasing threading Locks for Bindings.
 
         with Match() as session:
-            return session._match(schema, data)
+            return session.match(schema, data)
 
     The ``Match`` interface is not guaranteed stable.
     Please use the function ``match`` instead.
