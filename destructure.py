@@ -69,7 +69,7 @@ class Switch:
         >>> o = Binding()
         >>> schema1 = [1, o.x]
         >>> schema2 = [2, o.x]
-        >>> s = Switch(data=[2, 2], binding=o)
+        >>> s = Switch([2, 2])
         >>> if s.case(schema1):
         ...     print(o.x)
         ... elif s.case(schema2):
@@ -79,11 +79,7 @@ class Switch:
         2
     '''
 
-    def __init__(self, *, data=None, binding=None):
-        if binding is None:
-            self.binding = Binding()
-        else:
-            self.binding = binding
+    def __init__(self, data):
         self.data = data
 
 

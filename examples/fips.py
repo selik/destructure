@@ -42,6 +42,8 @@ schema_one = \
     "status": "OK",
 }
 
+
+
 schema_intersection = \
 {
     "executionTime": str,
@@ -67,14 +69,11 @@ schema_intersection = \
 
 
 with urlopen(url + urlencode(params)) as response:
-    data = response.read()
+    text = response.read().decode('utf-8')
 
-text = data.decode('utf-8')
-mapping = json.loads(text)
+data = json.loads(text)
 
-
-
-s = Switch(data=mapping, binding=results)
+s = Switch(data)
 
 if s.case(schema_one):
     codes = [results.fips]
