@@ -6,8 +6,8 @@ Easy declarative schema validation with optional name-binding.
 
 .. code:: python
 
-    from destructure import Binding, match
-
+    >>> from destructure import Binding, match
+    >>>
     >>> o = Binding()
     >>> schema = {
     ...     'string': str,
@@ -29,3 +29,20 @@ Easy declarative schema validation with optional name-binding.
     42
 
 
+Pick between several schemas with a handy ``Switch.case``.
+
+..code:: python
+
+    >>> from destructure import Binding, Switch
+    >>>
+    >>> o = Binding()
+    >>> schema1 = [1, o.x]
+    >>> schema2 = [2, o.x]
+    >>> s = Switch(data=[2, 2], binding=o)
+    >>> if s.case(schema1):
+    ...     print(o.x)
+    ... elif s.case(schema2):
+    ...     print(o.x)
+    ... else:
+    ...     print('otherwise')
+    2
