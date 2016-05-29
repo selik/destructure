@@ -243,6 +243,13 @@ class BindingTestCase(unittest.TestCase):
         self.assertIsInstance(o.x, Unbound)
         self.assertIsInstance(o.y, Unbound)
 
+    def test_two_in_same_schema(self):
+        a = Binding()
+        b = Binding()
+        schema = [a.x, b.x]
+        with self.assertRaises(SchemaError):
+            match(schema, [1, 2])
+
 
 
 class SwitchTestCase(unittest.TestCase):

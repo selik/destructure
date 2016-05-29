@@ -16,6 +16,7 @@ __all__ = ['match',
            'Unbound',
            'MatchError',
            'BindError',
+           'SchemaError',
            ]
 
 
@@ -23,10 +24,11 @@ __all__ = ['match',
 class MatchError(ValueError):
     'Data did not match the specified schema'
 
-
-
 class BindError(ValueError):
     'Could not bind value to name'
+
+class SchemaError(ValueError):
+    'Malformed schema'
 
 
 
@@ -71,6 +73,7 @@ class Binding(SimpleNamespace):
 
     def __enter__(self):
         self._lock.acquire()
+        return self
 
     def __exit__(self):
         self._lock.release()
@@ -124,7 +127,7 @@ class Match:
 
     def __init__(self):
         self.names = []
-        self.namespaces = []
+        self.binding = None
 
     def __enter__(self):
         return self
@@ -133,8 +136,8 @@ class Match:
         if etype is MatchError:
             for unbound in self.names:
                 delattr(unbound.namespace, unbound.name)
-        for binding in self.namespaces:
-            binding._lock.release()
+        if self.binding:
+            self.binding._lock.release()
 
 
 
@@ -253,16 +256,23 @@ class Match:
 
 
 
+    def acquire_binding_lock(self):
+        '''
+        Override this method to turn off thread-safety locks.
+        '''
+        return self.binding._lock.acquire()
+
+
+
     def bind(self, unbound, value):
         '''
         Bind value to Binding attribute.
         '''
-
-        # lock Binding for thread-safety
-        # track Binding to unlock after match is complete
-        if unbound.namespace not in self.namespaces:
-            unbound.namespace._lock.acquire()
-            self.namespaces.append(unbound.namespace)
+        if self.binding is None:
+            self.binding = unbound.namespace
+            self.acquire_binding_lock()
+        elif self.binding is not unbound.namespace:
+            raise SchemaError('Schema may only use one Binding object')
 
         setattr(unbound.namespace, unbound.name, value)
 

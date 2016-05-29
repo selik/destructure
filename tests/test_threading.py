@@ -25,10 +25,66 @@ class FuzzyBinding(Binding):
 
 class NoLockMatch(Match):
 
-    def bind(self, unbound, value):
-        setattr(unbound.namespace, unbound.name, value)
-        # track name bindings to delete if match fails
-        self.names.append(unbound)
+    def acquire_binding_lock(self):
+        pass
+
+
+
+class BindingDeadlockTestCase(unittest.TestCase):
+    '''
+    Test for two matches and two bindings causing deadlock.
+
+    Multiple Binding objects in a single schema is not supported.
+
+    To avoid deadlock in such a case, we'd need to traverse the schema
+    looking for all Binding objects and acquire all their locks before
+    doing any work. What a pain...
+
+    '''
+
+    def test_no_lock(self):
+        errors = self.deadlock(NoLockMatch().match)
+        self.assertEqual(2, sum(errors))
+
+    @unittest.skip("Schemas may not have multiple Binding objects")
+    def test_with_lock(self):
+        blocked = self.deadlock(match)
+        self.assertFalse(blocked)
+
+    def deadlock(self, match):
+        errors = []
+
+        a = FuzzyBinding()
+        b = FuzzyBinding()
+        schema1 = [a.x, b.x]
+        schema2 = [b.y, a.y]
+        data = [1, 2]
+
+        def worker(schema, data):
+            try:
+                match(schema, data)
+            except SchemaError:
+                errors.append(True)
+            else:
+                errors.append(False)
+
+        t1 = Thread(target=worker, args=(schema1, data))
+        t2 = Thread(target=worker, args=(schema2, data))
+
+        def monitor():
+            time.sleep(15)
+            raise RuntimeError('deadlock suspected, please stop test')
+        m = Thread(target=monitor)
+        m.daemon = True
+        m.start()
+
+        threads = [t1, t2]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        return errors
 
 
 
