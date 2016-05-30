@@ -23,7 +23,8 @@ Easy declarative schema validation with optional name-binding.
     ...     'sequence': [1, 2, 3, 4],
     ...     'mapping': {'a': 1, 'b': 2, 'c': 3},
     ... }
-    >>> data == match(schema, data)
+    >>> guard = lambda : o.name > 10
+    >>> data == match(schema, data, guard)
     True
     >>> o.name
     42

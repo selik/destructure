@@ -291,7 +291,21 @@ class BindingTestCase(unittest.TestCase):
 class SwitchTestCase(unittest.TestCase):
 
     def test_guards(self):
-        pass
+        bind = Binding()
+        schema = bind.x
+
+        def one():
+            return bind.x == 1
+        def two():
+            return bind.x == 2
+
+        s = Switch(2)
+
+        self.assertFalse(s.case(schema, one))
+        self.assertIsInstance(bind.x, Unbound)
+
+        self.assertTrue(s.case(schema, two))
+        self.assertEqual(bind.x, 2)
 
 
 

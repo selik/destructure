@@ -108,9 +108,15 @@ class Switch:
     def case(self, schema, *guards):
         '''
         Test a schema against the Switch's data.
+
+        Optionally, functions may be passed in as post-binding guards.
+        If a guard returns False, the case returns False and the
+        binding will be undone. Guard functions must take no
+        arguments, but may use Binding objects from the match.
+
         '''
         try:
-            match(schema, self.data)
+            match(schema, self.data, *guards)
         except MatchError:
             return False
         return True
@@ -342,7 +348,7 @@ class Match:
 
 
 
-def match(schema, data):
+def match(schema, data, *guards):
     '''
     Verify data follows an expected structure. The structure may be
     specified as a schema of nested sequences, mappings, and types.
@@ -368,7 +374,8 @@ def match(schema, data):
         ...     'mapping': {'a': 1, 'b': 2, 'c': 3},
         ...     'attributes': 1+2j
         ... }
-        >>> data == match(schema, data)
+        >>> guard = lambda : o.name > 10
+        >>> data == match(schema, data, guard)
         True
         >>> o.name
         42
@@ -377,7 +384,12 @@ def match(schema, data):
     '''
 
     with Match() as session:
-        return session.match(schema, data)
+        result = session.match(schema, data)
+        for guard in guards:
+            if guard() is False:
+                fmt = '{guard!r} returned False'
+                raise MatchError(fmt.format(guard=guard))
+        return result
 
 
 
