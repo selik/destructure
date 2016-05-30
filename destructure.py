@@ -364,7 +364,7 @@ def match(schema, data, *guards):
         ...     'binding': o.name,
         ...     'sequence': [1, 2, ...],
         ...     'mapping': {'a': int, ...: ...},
-        ...     'attributes': complex(real=1, imag=2)
+        ...     'attributes': complex(real=1, imag=2),
         ... }
         >>> data = {
         ...     'string': 'a',
@@ -372,7 +372,7 @@ def match(schema, data, *guards):
         ...     'binding': 42,
         ...     'sequence': [1, 2, 3, 4],
         ...     'mapping': {'a': 1, 'b': 2, 'c': 3},
-        ...     'attributes': 1+2j
+        ...     'attributes': 1+2j,
         ... }
         >>> guard = lambda : o.name > 10
         >>> data == match(schema, data, guard)
