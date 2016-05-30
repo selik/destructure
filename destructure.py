@@ -237,7 +237,10 @@ class Match:
                 fmt = 'missing values {!r}'
                 raise MatchError(fmt.format(schema[m:]))
             cls = type(schema)
-            return cls(map(self.match, schema, data))
+            try:
+                return cls(map(self.match, schema, data))
+            except TypeError:
+                return cls(*map(self.match, schema, data))
 
         if ... is schema[-1]:
             split = len(schema) - 1
@@ -255,7 +258,7 @@ class Match:
 
 
 
-    def match_equal(self, schema, data):
+    def match_basic(self, schema, data):
         '''
         Verify that the data is exactly the schema.
         Intended to match non-collection literals.
@@ -267,32 +270,32 @@ class Match:
 
 
 
-    def match_attributes(self, schema, data):
+    def match_object(self, schema, data):
         '''
         Verify the data is of the correct type
         and has the specified attributes.
         '''
-        cls = type(schema)
-        self.match_type(cls, data)
+        self.match_type(type(schema), data)
 
-        names = (name for name in dir(schema) if not name.startswith('_'))
-        attributes = {name: getattr(schema, name) for name in names}
-        for name, value in attributes.items():
-            if isinstance(value, Callable):
-                attributes.pop(name)
+        names = {name: getattr(schema, name) for name in dir(schema)}
+        public = {k: v for k, v in names.items() if not k.startswith('_')}
+        attributes = {k: v for k, v in public.items() if not callable(v)}
 
-        kwargs = {}
-        for name, nested in attributes.items():
+        for name, schema_value in attributes.items():
             try:
-                value = getattr(data, name)
+                data_value = getattr(data, name)
             except AttributeError:
                 fmt = '{data!r} missing attribute {name!r}'
                 raise MatchError(fmt.format(data=data, name=name))
-            else:
-                kwargs[name] = value
-                if isinstance(nested, Unbound):
-                    self.bind(nested, value)
-        return cls(**kwargs)
+
+            if isinstance(schema_value, Unbound):
+                self.bind(schema_value, data_value)
+
+            elif schema_value != data_value:
+                fmt = 'attribute {attr!r} did not equal {value!r}'
+                raise MatchError(fmt.format(attr=name, value=schema_value))
+
+        return data
 
 
 
@@ -336,7 +339,7 @@ class Match:
             return self.match_type(schema, data)
 
         if isinstance(schema, basics):
-            return self.match_equal(schema, data)
+            return self.match_basic(schema, data)
 
         if isinstance(schema, Mapping):
             return self.match_mapping(schema, data)
@@ -344,7 +347,7 @@ class Match:
         if isinstance(schema, Sequence) and not isinstance(schema, (str, bytes)):
             return self.match_sequence(schema, data)
 
-        return self.match_attributes(schema, data)
+        return self.match_object(schema, data)
 
 
 
@@ -364,7 +367,6 @@ def match(schema, data, *guards):
         ...     'binding': o.name,
         ...     'sequence': [1, 2, ...],
         ...     'mapping': {'a': int, ...: ...},
-        ...     'attributes': complex(real=1, imag=2),
         ... }
         >>> data = {
         ...     'string': 'a',
@@ -372,13 +374,25 @@ def match(schema, data, *guards):
         ...     'binding': 42,
         ...     'sequence': [1, 2, 3, 4],
         ...     'mapping': {'a': 1, 'b': 2, 'c': 3},
-        ...     'attributes': 1+2j,
         ... }
         >>> guard = lambda : o.name > 10
         >>> data == match(schema, data, guard)
         True
         >>> o.name
         42
+
+    Schemas may include other kinds of objects, though to make use of
+    Ellipses or Binding, the class must support keyword arguments and
+    cannot be too strict with parameter type-checking.
+
+        >>> from collections import namedtuple
+        >>> Point = namedtuple('Point', 'x y')
+        >>> bind = Binding()
+        >>> schema = Point(x=bind.x, y=bind.y)
+        >>> match(schema, Point(1, 2))
+        Point(x=1, y=2)
+        >>> bind.x, bind.y
+        (1, 2)
 
     A failed match will unwind any bindings made during the attempt.
     '''

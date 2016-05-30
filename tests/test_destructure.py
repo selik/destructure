@@ -18,7 +18,7 @@ class MatchAnyTestCase(unittest.TestCase):
 
 
 
-class MatchEqualTestCase(unittest.TestCase):
+class MatchBasicTestCase(unittest.TestCase):
 
     def test_literal(self):
         data = [1, 1.1, 1+1j, 'a', b'\x00']
@@ -211,7 +211,7 @@ class MatchNestedSequenceTestCase(unittest.TestCase):
 
 
 
-class MatchAttributesTestCase(unittest.TestCase):
+class MatchObjectTestCase(unittest.TestCase):
 
     def test_equality(self):
 
@@ -221,6 +221,37 @@ class MatchAttributesTestCase(unittest.TestCase):
 
         schema = Foo(bar=1)
         data = Foo(bar=1)
+
+        result = match(schema, data)
+
+        self.assertIsInstance(result, Foo)
+        self.assertEqual(result.bar, 1)
+
+
+    def test_inequality(self):
+
+        class Foo:
+            def __init__(self, bar):
+                self.bar = bar
+
+        schema = Foo(bar=1)
+        data = Foo(bar=2)
+
+        with self.assertRaises(MatchError):
+            match(schema, data)
+
+
+    def test_ignore_private(self):
+
+        class Foo:
+            def __init__(self, bar):
+                self.bar = bar
+                self._baz = 'private'
+
+        schema = Foo(bar=1)
+        data = Foo(bar=1)
+
+        self.assertTrue('_baz' in dir(schema))
 
         result = match(schema, data)
 
