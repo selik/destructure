@@ -4,7 +4,7 @@ Recursive schema verification for nested sequences and mappings.
 Ideal for validating parsed JSON data structures.
 '''
 
-from collections.abc import Mapping, Sequence, Callable
+from collections.abc import Mapping, Sequence
 from threading import Lock
 from types import SimpleNamespace
 
@@ -37,7 +37,7 @@ class SchemaError(Exception):
 
 
 class Unbound:
-    'Value of an schema element not yet bound to a value.'
+    'Value of a schema element not yet bound to a value.'
 
     def __init__(self, namespace, name):
         self.namespace = namespace
@@ -71,7 +71,7 @@ class Binding(SimpleNamespace):
     def __setattr__(self, name, value):
         if not isinstance(getattr(self, name), Unbound):
             fmt = 'name {name!r} has already been bound to {value!r}'
-            raise BindError(fmt.format(name=name, value=value))
+            raise BindError(fmt.format(name=name, value=getattr(self, name)))
         super().__setattr__(name, value)
 
 
