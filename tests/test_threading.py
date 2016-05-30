@@ -18,7 +18,7 @@ class FuzzyBinding(Binding):
         if not isinstance(getattr(self, name), Unbound):
             fmt = 'name {name!r} has already been bound to {value!r}'
             raise BindError(fmt.format(name=name, value=value))
-        time.sleep(random.random())
+        time.sleep(random.random()/10)
         super(Binding, self).__setattr__(name, value)
 
 
