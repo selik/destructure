@@ -279,7 +279,7 @@ class BindingTestCase(unittest.TestCase):
         self.assertEqual(o.x, 3)
 
     def test_rebind(self):
-        o = Binding()
+        o = FreezeBinding()
         o.x = 1
         with self.assertRaises(BindError):
             o.x = 2

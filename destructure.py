@@ -12,6 +12,7 @@ from types import SimpleNamespace
 
 __all__ = ['match',
            'Binding',
+           'FreezeBinding',
            'Switch',
            'Unbound',
            'MatchError',
@@ -64,16 +65,8 @@ class Binding(SimpleNamespace):
         self.__dict__.update(**kwargs)
         self._lock = Lock()
 
-
     def __getattr__(self, name):
         return Unbound(self, name)
-
-    def __setattr__(self, name, value):
-        if not isinstance(getattr(self, name), Unbound):
-            fmt = 'name {name!r} has already been bound to {value!r}'
-            raise BindError(fmt.format(name=name, value=getattr(self, name)))
-        super().__setattr__(name, value)
-
 
     def __enter__(self):
         self._lock.acquire()
@@ -81,6 +74,19 @@ class Binding(SimpleNamespace):
 
     def __exit__(self):
         self._lock.release()
+
+
+
+class FreezeBinding(Binding):
+    '''
+    Like Binding, but prevents re-binding its attributes.
+    '''
+
+    def __setattr__(self, name, value):
+        if not isinstance(getattr(self, name), Unbound):
+            fmt = 'name {name!r} has already been bound to {value!r}'
+            raise BindError(fmt.format(name=name, value=getattr(self, name)))
+        super().__setattr__(name, value)
 
 
 
