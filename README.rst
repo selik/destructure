@@ -14,14 +14,14 @@ Easy declarative schema validation with optional name-binding.
     ...     'any': ...,
     ...     'binding': o.name,
     ...     'sequence': [1, 2, ...],
-    ...     'mapping': {'a': int, ...: ...}
+    ...     'mapping': {'a': int, ...: ...},
     ... }
     >>> data = {
     ...     'string': 'a',
     ...     'any': 5j,
     ...     'binding': 42,
     ...     'sequence': [1, 2, 3, 4],
-    ...     'mapping': {'a': 1, 'b': 2, 'c': 3}
+    ...     'mapping': {'a': 1, 'b': 2, 'c': 3},
     ... }
     >>> data == match(schema, data)
     True
@@ -47,3 +47,21 @@ Pick between several schemas with a handy ``Switch.case``.
     ... else:
     ...     print('otherwise')
     2
+
+
+Schemas may validate and unpack custom class attributes. This feature
+is restricted to classes that can be constructed with keyword
+arguments. Binding objects may be used so long as the class does not
+have aggressive argument type-checking.
+
+.. code:: python
+
+    >>> class Foo:
+    ...     def __init__(self, bar):
+    ...         self.bar = bar
+    >>> o = Binding()
+    >>> schema = Foo(bar=o.x)
+    >>> data = Foo(bar=1)
+    >>> result = match(schema, data)
+    >>> o.x
+    1

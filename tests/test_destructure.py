@@ -211,6 +211,42 @@ class MatchNestedSequenceTestCase(unittest.TestCase):
 
 
 
+class MatchAttributesTestCase(unittest.TestCase):
+
+    def test_equality(self):
+
+        class Foo:
+            def __init__(self, bar):
+                self.bar = bar
+
+        schema = Foo(bar=1)
+        data = Foo(bar=1)
+
+        result = match(schema, data)
+
+        self.assertIsInstance(result, Foo)
+        self.assertEqual(result.bar, 1)
+
+
+    def test_binding(self):
+
+        class Foo:
+            def __init__(self, bar):
+                self.bar = bar
+
+        o = Binding()
+        schema = Foo(bar=o.x)
+        data = Foo(bar=1)
+
+        result = match(schema, data)
+
+        self.assertIsInstance(result, Foo)
+        self.assertEqual(result.bar, 1)
+
+        self.assertEqual(o.x, 1)
+
+
+
 class BindingTestCase(unittest.TestCase):
 
     def test_simple(self):

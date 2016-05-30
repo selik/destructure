@@ -16,4 +16,6 @@ print('Doctests:', end=' ')
 
 import destructure; test(destructure)
 
+doctest.testfile('../README.rst'); print('.', end='')
+
 print()

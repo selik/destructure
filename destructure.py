@@ -4,7 +4,7 @@ Recursive schema verification for nested sequences and mappings.
 Ideal for validating parsed JSON data structures.
 '''
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Sequence, Callable
 from threading import Lock
 from types import SimpleNamespace
 
@@ -21,6 +21,10 @@ __all__ = ['match',
 
 
 
+basics = (str, bytes, int, float, complex)
+
+
+
 class MatchError(ValueError):
     'Data did not match the specified schema'
 
@@ -32,8 +36,8 @@ class SchemaError(Exception):
 
 
 
-class Unbound(AttributeError):
-    'Attribute not bound to a value'
+class Unbound:
+    'Value of an schema element not yet bound to a value.'
 
     def __init__(self, namespace, name):
         self.namespace = namespace
@@ -101,7 +105,7 @@ class Switch:
         self.data = data
 
 
-    def case(self, schema):
+    def case(self, schema, *guards):
         '''
         Test a schema against the Switch's data.
         '''
@@ -257,6 +261,35 @@ class Match:
 
 
 
+    def match_attributes(self, schema, data):
+        '''
+        Verify the data is of the correct type
+        and has the specified attributes.
+        '''
+        cls = type(schema)
+        self.match_type(cls, data)
+
+        names = (name for name in dir(schema) if not name.startswith('_'))
+        attributes = {name: getattr(schema, name) for name in names}
+        for name, value in attributes.items():
+            if isinstance(value, Callable):
+                attributes.pop(name)
+
+        kwargs = {}
+        for name, nested in attributes.items():
+            try:
+                value = getattr(data, name)
+            except AttributeError:
+                fmt = '{data!r} missing attribute {name!r}'
+                raise MatchError(fmt.format(data=data, name=name))
+            else:
+                kwargs[name] = value
+                if isinstance(nested, Unbound):
+                    self.bind(nested, value)
+        return cls(**kwargs)
+
+
+
     def acquire_binding_lock(self):
         '''
         Override this method to turn off thread-safety locks.
@@ -296,13 +329,16 @@ class Match:
         if isinstance(schema, type):
             return self.match_type(schema, data)
 
+        if isinstance(schema, basics):
+            return self.match_equal(schema, data)
+
         if isinstance(schema, Mapping):
             return self.match_mapping(schema, data)
 
         if isinstance(schema, Sequence) and not isinstance(schema, (str, bytes)):
             return self.match_sequence(schema, data)
 
-        return self.match_equal(schema, data)
+        return self.match_attributes(schema, data)
 
 
 
@@ -321,14 +357,16 @@ def match(schema, data):
         ...     'any': ...,
         ...     'binding': o.name,
         ...     'sequence': [1, 2, ...],
-        ...     'mapping': {'a': int, ...: ...}
+        ...     'mapping': {'a': int, ...: ...},
+        ...     'attributes': complex(real=1, imag=2)
         ... }
         >>> data = {
         ...     'string': 'a',
         ...     'any': 5j,
         ...     'binding': 42,
         ...     'sequence': [1, 2, 3, 4],
-        ...     'mapping': {'a': 1, 'b': 2, 'c': 3}
+        ...     'mapping': {'a': 1, 'b': 2, 'c': 3},
+        ...     'attributes': 1+2j
         ... }
         >>> data == match(schema, data)
         True
