@@ -110,9 +110,9 @@ class Switch:
         Test a schema against the Switch's data.
 
         Optionally, functions may be passed in as post-binding guards.
-        If a guard returns False, the case returns False and the
-        binding will be undone. Guard functions must take no
-        arguments, but may use Binding objects from the match.
+        The guard function must evaluate True for the match to
+        succeed. Guard functions must take no arguments, but may use
+        Binding objects from the match.
 
         '''
         try:
@@ -386,7 +386,7 @@ def match(schema, data, *guards):
     with Match() as session:
         result = session.match(schema, data)
         for guard in guards:
-            if guard() is False:
+            if not guard():
                 fmt = '{guard!r} returned False'
                 raise MatchError(fmt.format(guard=guard))
         return result
