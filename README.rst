@@ -37,17 +37,17 @@ Pick between several schemas with a handy ``Switch.case``.
     >>> from destructure import Binding, Switch
     >>>
     >>> o = Binding()
-    >>> schema1 = [1, o.x]
-    >>> schema2 = [2, o.x]
+    >>> schema1 = [1, o.x, 3]
+    >>> schema2 = [2, 4, o.x]
     >>>
-    >>> s = Switch([2, 2])
+    >>> s = Switch([2, 4, 6])
     >>> if s.case(schema1):
     ...     print(o.x)
     ... elif s.case(schema2):
     ...     print(o.x)
     ... else:
     ...     print('otherwise')
-    2
+    6
 
 Schemas may include many kinds of objects, though to make use of
 Ellipses or Binding, the class must support keyword arguments and
