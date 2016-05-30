@@ -18,7 +18,7 @@ class MatchAnyTestCase(unittest.TestCase):
 
 
 
-class MatchBasicTestCase(unittest.TestCase):
+class MatchEqualTestCase(unittest.TestCase):
 
     def test_literal(self):
         data = [1, 1.1, 1+1j, 'a', b'\x00']
@@ -211,31 +211,32 @@ class MatchNestedSequenceTestCase(unittest.TestCase):
 
 
 
-class MatchObjectTestCase(unittest.TestCase):
+class MatchInstanceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        class Foo:
+            def __init__(self, bar, **kwargs):
+                self.bar = bar
+                self.__dict__.update(**kwargs)
+            def __eq__(self, other):
+                return self.bar == other.bar
+
+        self.Foo = Foo
+
 
     def test_equality(self):
-
-        class Foo:
-            def __init__(self, bar):
-                self.bar = bar
-
-        schema = Foo(bar=1)
-        data = Foo(bar=1)
+        schema = self.Foo(bar=1)
+        data = self.Foo(bar=1)
 
         result = match(schema, data)
 
-        self.assertIsInstance(result, Foo)
+        self.assertIsInstance(result, self.Foo)
         self.assertEqual(result.bar, 1)
 
 
     def test_inequality(self):
-
-        class Foo:
-            def __init__(self, bar):
-                self.bar = bar
-
-        schema = Foo(bar=1)
-        data = Foo(bar=2)
+        schema = self.Foo(bar=1)
+        data = self.Foo(bar=2)
 
         with self.assertRaises(MatchError):
             match(schema, data)
@@ -243,35 +244,25 @@ class MatchObjectTestCase(unittest.TestCase):
 
     def test_ignore_private(self):
 
-        class Foo:
-            def __init__(self, bar):
-                self.bar = bar
-                self._baz = 'private'
-
-        schema = Foo(bar=1)
-        data = Foo(bar=1)
+        schema = self.Foo(bar=1, _baz=2)
+        data = self.Foo(bar=1)
 
         self.assertTrue('_baz' in dir(schema))
 
         result = match(schema, data)
 
-        self.assertIsInstance(result, Foo)
+        self.assertIsInstance(result, self.Foo)
         self.assertEqual(result.bar, 1)
 
 
     def test_binding(self):
-
-        class Foo:
-            def __init__(self, bar):
-                self.bar = bar
-
         o = Binding()
-        schema = Foo(bar=o.x)
-        data = Foo(bar=1)
+        schema = self.Foo(bar=o.x)
+        data = self.Foo(bar=1)
 
         result = match(schema, data)
 
-        self.assertIsInstance(result, Foo)
+        self.assertIsInstance(result, self.Foo)
         self.assertEqual(result.bar, 1)
 
         self.assertEqual(o.x, 1)

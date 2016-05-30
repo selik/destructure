@@ -258,42 +258,40 @@ class Match:
 
 
 
-    def match_basic(self, schema, data):
+    def match_equal(self, schema, data):
         '''
-        Verify that the data is exactly the schema.
+        Verify that the data is equal to the schema.
         Intended to match non-collection literals.
         '''
-        if schema != data:
-            fmt = '{data!r} did not match literal {schema!r}'
-            raise MatchError(fmt.format(data=data, schema=schema))
-        return data
+        if schema == data:
+            return data
+        fmt = '{data!r} did not compare equal to {schema!r}'
+        raise MatchError(fmt.format(data=data, schema=schema))
 
 
 
-    def match_object(self, schema, data):
+    def match_instance(self, schema, data):
         '''
         Verify the data is of the correct type
-        and has the specified attributes.
+        and that the data equals the schema.
+
         '''
+
         self.match_type(type(schema), data)
+        try:
+            return self.match_equal(schema, data)
+        except MatchError:
+            pass # May have Unbound attributes
 
         names = {name: getattr(schema, name) for name in dir(schema)}
         public = {k: v for k, v in names.items() if not k.startswith('_')}
         attributes = {k: v for k, v in public.items() if not callable(v)}
-
         for name, schema_value in attributes.items():
             try:
-                data_value = getattr(data, name)
+                self.match(schema_value, getattr(data, name))
             except AttributeError:
                 fmt = '{data!r} missing attribute {name!r}'
                 raise MatchError(fmt.format(data=data, name=name))
-
-            if isinstance(schema_value, Unbound):
-                self.bind(schema_value, data_value)
-
-            elif schema_value != data_value:
-                fmt = 'attribute {attr!r} did not equal {value!r}'
-                raise MatchError(fmt.format(attr=name, value=schema_value))
 
         return data
 
@@ -322,6 +320,8 @@ class Match:
         # track name bindings to delete if match fails
         self.names.append(unbound)
 
+        return value
+
 
 
     def match(self, schema, data):
@@ -329,8 +329,7 @@ class Match:
         Recursive schema validation and name-binding.
         '''
         if isinstance(schema, Unbound):
-            self.bind(schema, data)
-            return data
+            return self.bind(schema, data)
 
         if schema is Ellipsis:
             return data
@@ -339,7 +338,7 @@ class Match:
             return self.match_type(schema, data)
 
         if isinstance(schema, basics):
-            return self.match_basic(schema, data)
+            return self.match_equal(schema, data)
 
         if isinstance(schema, Mapping):
             return self.match_mapping(schema, data)
@@ -347,7 +346,7 @@ class Match:
         if isinstance(schema, Sequence) and not isinstance(schema, (str, bytes)):
             return self.match_sequence(schema, data)
 
-        return self.match_object(schema, data)
+        return self.match_instance(schema, data)
 
 
 
