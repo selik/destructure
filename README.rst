@@ -59,9 +59,8 @@ have aggressive argument type-checking.
     >>> class Foo:
     ...     def __init__(self, bar):
     ...         self.bar = bar
-    >>> o = Binding()
-    >>> schema = Foo(bar=o.x)
-    >>> data = Foo(bar=1)
-    >>> result = match(schema, data)
-    >>> o.x
+    >>> bind = Binding()
+    >>> schema = Foo(bar=bind.x)
+    >>> result = match(schema, Foo(bar=1))
+    >>> bind.x
     1
