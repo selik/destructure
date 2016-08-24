@@ -65,3 +65,6 @@ cannot be too strict with parameter type-checking.
     1
 
 
+See some `example scripts`_ for a practical usage, in context.
+
+.. _`example scripts`: http://github.com/selik/destructure/tree/master/examples
